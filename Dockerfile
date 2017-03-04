@@ -1,6 +1,8 @@
 FROM ubuntu:latest
 MAINTAINER Yorick de Wid <ydw@byqn.io>
 
+ENV TZ=Europe/Amsterdam
+
 # Install apache, PHP, and supplimentary programs.
 RUN apt-get -y update && apt-get -y upgrade \
 	&& apt-get -y install wget zip unzip git cron supervisor \
