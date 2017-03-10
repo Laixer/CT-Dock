@@ -4,11 +4,12 @@ MAINTAINER Yorick de Wid <ydw@byqn.io>
 ENV TZ=Europe/Amsterdam
 
 # Install apache, PHP, and supplimentary programs.
-RUN apt-get -y update && apt-get -y upgrade \
-	&& apt-get -y install wget zip unzip git cron supervisor \
-	&& apt-get -y install apache2 npm redis-server postgresql \
-	&& apt-get -y install php php-mbstring php-dom php-curl php-pgsql php-gd \
-	&& apt-get -y install libapache2-mod-php libxrender1
+RUN apt-get -y update \
+	&& apt-get -y --no-install-recommends install wget zip unzip xz-utils git cron supervisor \
+	&& apt-get -y --no-install-recommends install apache2 npm redis-server postgresql \
+	&& apt-get -y --no-install-recommends install php php-mbstring php-dom php-curl php-pgsql php-gd \
+	&& apt-get -y --no-install-recommends install libapache2-mod-php libxrender1 libxext6 \
+	&& apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Wkhtmltox
 RUN wget http://download.gna.org/wkhtmltopdf/0.12/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz -O wkhtmltox.tar \
@@ -18,8 +19,7 @@ RUN wget http://download.gna.org/wkhtmltopdf/0.12/0.12.4/wkhtmltox-0.12.4_linux-
 	&& rm -rf wkhtmltox.tar
 
 # Install bower.
-RUN ln -s /usr/bin/nodejs /usr/bin/node
-RUN npm install -g bower
+RUN ln -s /usr/bin/nodejs /usr/bin/node && npm install -g bower
 
 # Fetch composer.
 RUN wget https://getcomposer.org/composer.phar -O /usr/bin/composer \
@@ -48,6 +48,7 @@ RUN chmod 644 /etc/cron.d/app-cron
 # Copy this repo into place.
 ADD calctool-v2 /var/www/ct
 ADD .env /var/www/ct/.env
+RUN rm -rf /var/www/ct/.git
 
 # Add application owner
 RUN useradd -ms /bin/sh eve
@@ -77,7 +78,7 @@ EXPOSE 80
 
 # Cleanup
 USER root
-RUN apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ADD supervisord.conf /etc/supervisord.conf
 CMD ["/usr/bin/supervisord", "-n", "-c","/etc/supervisord.conf"]
