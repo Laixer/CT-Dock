@@ -41,7 +41,7 @@ ADD redis.conf /etc/redis/redis.conf
 RUN a2enmod rewrite
 RUN a2dismod status
 
-# Setup cron
+# Setup cron.
 ADD crontab /etc/cron.d/app-cron
 RUN chmod 644 /etc/cron.d/app-cron
 
@@ -51,11 +51,12 @@ ADD .env /var/www/ct/.env
 RUN rm -rf /var/www/ct/.git
 
 # Add application owner
-RUN useradd -ms /bin/sh eve
-RUN chown -R eve:eve /var/www/ct
-RUN usermod -a -G eve www-data
+RUN useradd -ms /bin/sh eve \
+	&& chown -R eve:eve /var/www/ct \
+	&& usermod -a -G eve www-data \
+	&& chmod g+w -R /var/www/ct/storage
 
-# Configure postges.
+# Configure postgres.
 USER postgres
 RUN /etc/init.d/postgresql start \
         && psql --command "CREATE USER eve WITH PASSWORD 'eve';" \
@@ -63,13 +64,14 @@ RUN /etc/init.d/postgresql start \
 
 USER eve
 WORKDIR /var/www/ct
+RUN touch /var/www/ct/storage/logs/laravel.log
 RUN composer update --no-scripts
 RUN composer update
 RUN bower update
 RUN /var/www/ct/artisan key:gen
-ENV APP_DEBUG=1
 USER postgres
 RUN /etc/init.d/postgresql start \
+	&& sleep 5 \
 	&& /var/www/ct/artisan migrate --seed \
 	&& /var/www/ct/artisan db:seed --class DemoEnvSeeder
 
