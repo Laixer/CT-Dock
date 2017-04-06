@@ -65,8 +65,8 @@ RUN /etc/init.d/postgresql start \
 USER eve
 WORKDIR /var/www/ct
 RUN touch /var/www/ct/storage/logs/laravel.log
-RUN composer update --no-scripts
-RUN composer update
+RUN composer update --no-scripts \
+	&& php artisan optimize
 RUN bower update
 RUN /var/www/ct/artisan key:gen
 USER postgres
@@ -83,4 +83,5 @@ USER root
 RUN rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 ADD supervisord.conf /etc/supervisord.conf
-CMD ["/usr/bin/supervisord", "-n", "-c","/etc/supervisord.conf"]
+ADD entrypoint /usr/bin/entrypoint
+CMD ["/usr/bin/entrypoint","/etc/supervisord.conf"]
