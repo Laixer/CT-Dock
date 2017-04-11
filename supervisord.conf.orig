@@ -14,6 +14,7 @@ stderr_logfile=/var/log/supervisor/redis.log
 autorestart=true
 
 [program:postgresql]
+priority=3
 command=/usr/lib/postgresql/9.5/bin/postgres -D /var/lib/postgresql/9.5/main/ -c config_file=/etc/postgresql/9.5/main/postgresql.conf
 stdout_logfile=/var/log/supervisor/postgres.log
 stderr_logfile=/var/log/supervisor/postgres.log
@@ -26,3 +27,13 @@ command=apache2ctl -DFOREGROUND
 stdout_logfile=/var/log/supervisor/apache2.log
 stderr_logfile=/var/log/supervisor/apache2.log
 autorestart=true
+
+[program:laravel-worker]
+priority=8
+command=php /var/www/ct/artisan queue:work --sleep=3
+autostart=true
+autorestart=true
+user=eve
+numprocs=8
+redirect_stderr=true
+stdout_logfile=/var/log/supervisor/worker.log

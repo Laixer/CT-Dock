@@ -25,6 +25,9 @@ RUN ln -s /usr/bin/nodejs /usr/bin/node && npm install -g bower
 RUN wget https://getcomposer.org/composer.phar -O /usr/bin/composer \
 	&& chmod +x /usr/bin/composer
 
+# Setup users
+RUN useradd -ms /bin/sh eve
+
 # Manually set up the apache environment variables.
 ENV APACHE_RUN_USER www-data
 ENV APACHE_RUN_GROUP www-data
@@ -45,15 +48,23 @@ RUN a2dismod status
 ADD crontab /etc/cron.d/app-cron
 RUN chmod 644 /etc/cron.d/app-cron
 
-# Copy this repo into place.
+# Instsall dependencies.
+RUN mkdir /var/www/ct && chown -R eve:eve /var/www/ct
+USER eve
+WORKDIR /var/www/ct
+ADD calctool-v2/composer.json /var/www/ct
+RUN composer install --no-scripts --no-autoloader
+USER root
+
+# Copy this repo in place.
 ADD calctool-v2 /var/www/ct
 ADD .env /var/www/ct/.env
-RUN rm -rf /var/www/ct/.git
-
-# Add application owner
-RUN useradd -ms /bin/sh eve \
+RUN rm -rf /var/www/ct/.git \
+	&& touch /var/www/ct/storage/logs/laravel.log \
 	&& chown -R eve:eve /var/www/ct \
 	&& usermod -a -G eve www-data \
+	&& usermod -a -G eve postgres \
+	&& chmod g+w -R /var/www/ct/bootstrap \
 	&& chmod g+w -R /var/www/ct/storage
 
 # Configure postgres.
@@ -62,18 +73,18 @@ RUN /etc/init.d/postgresql start \
         && psql --command "CREATE USER eve WITH PASSWORD 'eve';" \
         && createdb -O eve eve
 
+# Update vendor packages.
 USER eve
 WORKDIR /var/www/ct
-RUN touch /var/www/ct/storage/logs/laravel.log
-RUN composer update --no-scripts \
-	&& php artisan optimize
 RUN bower update
-RUN /var/www/ct/artisan key:gen
+RUN composer update --no-scripts && composer update
+RUN php artisan key:gen
+
 USER postgres
 RUN /etc/init.d/postgresql start \
 	&& sleep 5 \
-	&& /var/www/ct/artisan migrate --seed \
-	&& /var/www/ct/artisan db:seed --class DemoEnvSeeder
+	&& php artisan migrate --seed \
+	&& php artisan db:seed --class DemoEnvSeeder
 
 # Expose apache.
 EXPOSE 80

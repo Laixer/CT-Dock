@@ -14,6 +14,7 @@
 #define FLAG_PGSQL	1<<2
 #define FLAG_REDIS	1<<3
 #define FLAG_HTTPD	1<<4
+#define FLAG_WORKER	1<<5
 
 static const char cron_config[] =
     "[program:cron]\n"
@@ -31,6 +32,7 @@ static const char redis_config[] =
 
 static const char pgsql_config[] =
     "[program:postgresql]\n"
+    "priority=3\n"
     "command=/usr/lib/postgresql/9.5/bin/postgres -D /var/lib/postgresql/9.5/main/ -c config_file=/etc/postgresql/9.5/main/postgresql.conf\n"
     "stdout_logfile=/var/log/supervisor/postgres.log\n"
     "stderr_logfile=/var/log/supervisor/postgres.log\n"
@@ -44,6 +46,18 @@ static const char httpd_config[] =
     "stdout_logfile=/var/log/supervisor/apache2.log\n"
     "stderr_logfile=/var/log/supervisor/apache2.log\n"
     "autorestart=true\n";
+
+static const char worker_config[] =
+    "[program:laravel-worker]\n"
+    "process_name=%(program_name)s_%(process_num)02d\n"
+    "priority=8\n"
+    "command=php /var/www/ct/artisan queue:work --sleep=3\n"
+    "autostart=true\n"
+    "autorestart=true\n"
+    "user=eve\n"
+    "numprocs=2\n"
+    "redirect_stderr=true\n"
+    "stdout_logfile=/var/log/supervisor/worker.log\n";
 
 void start_services(int flag, const char *config) {
     char buffer[2048];
@@ -68,6 +82,11 @@ void start_services(int flag, const char *config) {
         snprintf(buffer, 2048, "echo \"%s\" >> %s", httpd_config, config);
         system(buffer);
     }
+    if (flag & FLAG_WORKER) {
+        puts("Starting Worker");
+        snprintf(buffer, 2048, "echo \"%s\" >> %s", worker_config, config);
+        system(buffer);
+    }
 }
 
 void usage(const char *progname) {
@@ -78,6 +97,7 @@ void usage(const char *progname) {
     printf(" --pgsql     Enable PostgreSQL service\n");
     printf(" --redis     Enable Redis service\n");
     printf(" --httpd     Enable Apache2 service\n");
+    printf(" --worker    Enable Queue worker\n");
 }
 
 int main(int argc, char *argv[], char *envp[]) {
@@ -106,6 +126,8 @@ int main(int argc, char *argv[], char *envp[]) {
             serviceflag |= FLAG_REDIS;
         } else if (!strcmp(argv[i], "--httpd")) {
             serviceflag |= FLAG_HTTPD;
+        } else if (!strcmp(argv[i], "--worker")) {
+            serviceflag |= FLAG_WORKER;
         } else {
             usage(argv[0]);
             return 1;
@@ -123,6 +145,8 @@ int main(int argc, char *argv[], char *envp[]) {
                 serviceflag |= FLAG_REDIS;
             } else if (!strcmp(*env, "EP_HTTPD=1")) {
                 serviceflag |= FLAG_HTTPD;
+            } else if (!strcmp(*env, "EP_WORKER=1")) {
+                serviceflag |= FLAG_WORKER;
             }
         }
     }
