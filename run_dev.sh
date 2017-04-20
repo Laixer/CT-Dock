@@ -8,13 +8,17 @@ docker run --rm --name ctdev -h ctdemo \
 	-e MAILGUN_PUBLIC=pubkey-5ad82f40a86568d0b05fbd5e1cd21b70 \
 	-e APP_ENV=demo \
 	-e APP_DEBUG=true \
-	-e EP_REDIS=1 \
+	-e APP_LOG_LEVEL=debug \
 	-e EP_HTTPD=1 \
 	-e EP_CRON=1 \
 	-e EP_PGSQL=1 \
 	-e EP_WORKER=1 \
 	-v "$PWD/"calctool-v2/app:/var/www/ct/app \
 	-v "$PWD/"calctool-v2/config:/var/www/ct/config \
+	-v "$PWD/"calctool-v2/database:/var/www/ct/database \
+	-v "$PWD/"calctool-v2/public:/var/www/ct/public \
 	-v "$PWD/"calctool-v2/resources:/var/www/ct/resources \
 	-v "$PWD/"calctool-v2/routes:/var/www/ct/routes \
+	-v "$PWD/"calctool-v2/tests:/var/www/ct/tests \
+	-p 5432:5432 \
 	-d dinux/ctdock

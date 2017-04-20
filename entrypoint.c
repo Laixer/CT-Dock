@@ -155,6 +155,7 @@ int main(int argc, char *argv[], char *envp[]) {
         return 0;
 
     start_services(serviceflag, configfile);
+    system("php artisan optimize");
     system("/usr/bin/supervisord -n -c /etc/supervisord.conf");
     return 0;
 }

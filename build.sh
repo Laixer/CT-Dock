@@ -1,2 +1,2 @@
 #!/bin/bash
-docker build -t dinux/ctdock:latest .
+docker build -f Dockerfile.dev -t dinux/ctdock:dev .
