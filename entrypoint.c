@@ -51,7 +51,7 @@ static const char worker_config[] =
     "[program:laravel-worker]\n"
     "process_name=%(program_name)s_%(process_num)02d\n"
     "priority=8\n"
-    "command=php /var/www/ct/artisan queue:work --sleep=3\n"
+    "command=sh -c 'sleep 30 && php /var/www/ct/artisan queue:work --sleep=3'\n"
     "autostart=true\n"
     "autorestart=true\n"
     "user=eve\n"
@@ -155,6 +155,8 @@ int main(int argc, char *argv[], char *envp[]) {
         return 0;
 
     start_services(serviceflag, configfile);
+    system("php artisan config:cache");
+    system("php artisan key:generate -q");
     system("php artisan optimize");
     system("/usr/bin/supervisord -n -c /etc/supervisord.conf");
     return 0;

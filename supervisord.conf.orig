@@ -30,7 +30,7 @@ autorestart=true
 
 [program:laravel-worker]
 priority=8
-command=php /var/www/ct/artisan queue:work --sleep=3
+command=sh -c 'sleep 30 && php /var/www/ct/artisan queue:work --sleep=3'
 autostart=true
 autorestart=true
 user=eve

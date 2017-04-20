@@ -7,7 +7,7 @@ ENV APP_DEBUG=1
 # Install apache, PHP, and supplimentary programs.
 RUN apt-get -y update \
 	&& apt-get -y --no-install-recommends install wget zip unzip xz-utils git cron supervisor \
-	&& apt-get -y --no-install-recommends install apache2 npm redis-server postgresql \
+	&& apt-get -y --no-install-recommends install apache2 npm \
 	&& apt-get -y --no-install-recommends install php php-mbstring php-dom php-curl php-pgsql php-gd \
 	&& apt-get -y --no-install-recommends install libapache2-mod-php libxrender1 libxext6 \
 	&& apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -28,8 +28,7 @@ RUN wget https://getcomposer.org/composer.phar -O /usr/bin/composer \
 
 # Setup users
 RUN useradd -ms /bin/sh eve \
-	&& usermod -a -G eve www-data \
-	&& usermod -a -G eve postgres
+	&& usermod -a -G eve www-data
 
 # Manually set up the apache environment variables.
 ENV APACHE_RUN_USER www-data
@@ -41,7 +40,6 @@ ENV APACHE_PID_FILE /var/run/apache2.pid
 # Copy in config files.
 ADD apache2.conf /etc/apache2/apache2.conf
 ADD app.conf /etc/apache2/sites-enabled/
-ADD redis.conf /etc/redis/redis.conf
 ADD php.ini /etc/php/7.0/apache2/php.ini
 
 # Enable apache mods.
@@ -59,7 +57,7 @@ RUN mkdir -p /var/www/ct \
 USER eve
 WORKDIR /var/www/ct
 ADD calctool-v2/composer.json /var/www/ct
-RUN composer install --no-scripts --no-autoloader
+RUN composer install --no-scripts --no-autoloader --no-dev
 ADD calctool-v2/bower.json /var/www/ct
 RUN bower update
 
@@ -75,27 +73,14 @@ ADD .env /var/www/ct/.env
 RUN rm -rf /var/www/ct/.git \
 	&& touch /var/www/ct/storage/logs/laravel.log \
 	&& cp -r bower_components/* public/components/ \
-	&& rm -rf bower_components \
 	&& chown -R eve:eve /var/www/ct \
 	&& chmod g+w -R /var/www/ct/bootstrap \
 	&& chmod g+w -R /var/www/ct/storage
 
-# Configure postgres.
-USER postgres
-RUN /etc/init.d/postgresql start \
-        && psql --command "CREATE USER eve WITH PASSWORD 'eve';" \
-        && createdb -O eve eve
-
 # Update vendor packages.
 USER eve
 WORKDIR /var/www/ct
-RUN composer install
-
-USER postgres
-RUN /etc/init.d/postgresql start \
-	&& sleep 7 \
-	&& php artisan migrate --seed \
-	&& php artisan db:seed --class DemoEnvSeeder
+RUN composer install --no-dev
 
 # Expose apache.
 EXPOSE 80

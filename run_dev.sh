@@ -21,4 +21,4 @@ docker run --rm --name ctdev -h ctdemo \
 	-v "$PWD/"calctool-v2/routes:/var/www/ct/routes \
 	-v "$PWD/"calctool-v2/tests:/var/www/ct/tests \
 	-p 5432:5432 \
-	-d dinux/ctdock
+	-d dinux/ctdock:dev
