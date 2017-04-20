@@ -2,6 +2,9 @@ FROM ubuntu:latest
 MAINTAINER Yorick de Wid <ydw@byqn.io>
 
 ENV TZ=Europe/Amsterdam
+ENV APP_DEBUG=1
+#ENV APP_KEY=base64:h9gL5cQNzWAwTukWvOMltBT1gyp1dvur5G439uJ4cK0=
+###ENV APP_KEY=base64:MDAwMDAwMDAwMDAwMDAwMA==
 
 # Install apache, PHP, and supplimentary programs.
 RUN apt-get -y update \
@@ -12,7 +15,7 @@ RUN apt-get -y update \
 	&& apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Wkhtmltox
-RUN wget http://download.gna.org/wkhtmltopdf/0.12/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz -O wkhtmltox.tar \
+RUN wget https://downloads.wkhtmltopdf.org/0.12/0.12.4/wkhtmltox-0.12.4_linux-generic-amd64.tar.xz -O wkhtmltox.tar \
 	&& tar xvf wkhtmltox.tar \
 	&& cp wkhtmltox/bin/* /usr/local/bin/ \
 	&& rm -rf wkhtmltox/ \
@@ -26,7 +29,9 @@ RUN wget https://getcomposer.org/composer.phar -O /usr/bin/composer \
 	&& chmod +x /usr/bin/composer
 
 # Setup users
-RUN useradd -ms /bin/sh eve
+RUN useradd -ms /bin/sh eve \
+	&& usermod -a -G eve www-data \
+	&& usermod -a -G eve postgres
 
 # Manually set up the apache environment variables.
 ENV APACHE_RUN_USER www-data
@@ -39,6 +44,7 @@ ENV APACHE_PID_FILE /var/run/apache2.pid
 ADD apache2.conf /etc/apache2/apache2.conf
 ADD app.conf /etc/apache2/sites-enabled/
 ADD redis.conf /etc/redis/redis.conf
+ADD php.ini /etc/php/7.0/apache2/php.ini
 
 # Enable apache mods.
 RUN a2enmod rewrite
@@ -49,21 +55,29 @@ ADD crontab /etc/cron.d/app-cron
 RUN chmod 644 /etc/cron.d/app-cron
 
 # Instsall dependencies.
-RUN mkdir /var/www/ct && chown -R eve:eve /var/www/ct
+RUN mkdir -p /var/www/ct \
+	&& mkdir -p /var/www/ct/public/components \
+	&& chown -R eve:eve /var/www/ct
 USER eve
 WORKDIR /var/www/ct
 ADD calctool-v2/composer.json /var/www/ct
 RUN composer install --no-scripts --no-autoloader
-USER root
+ADD calctool-v2/bower.json /var/www/ct
+RUN bower update
 
-# Copy this repo in place.
+# Do some preliminary cleanup
+USER root
+RUN apt-get -y --auto-remove purge wget npm \
+	&& apt-get -y autoremove \
+	&& rm /usr/bin/node
+
+# Setup the codebase.
 ADD calctool-v2 /var/www/ct
 ADD .env /var/www/ct/.env
 RUN rm -rf /var/www/ct/.git \
 	&& touch /var/www/ct/storage/logs/laravel.log \
+	&& cp -r bower_components/* public/components/ \
 	&& chown -R eve:eve /var/www/ct \
-	&& usermod -a -G eve www-data \
-	&& usermod -a -G eve postgres \
 	&& chmod g+w -R /var/www/ct/bootstrap \
 	&& chmod g+w -R /var/www/ct/storage
 
@@ -76,13 +90,12 @@ RUN /etc/init.d/postgresql start \
 # Update vendor packages.
 USER eve
 WORKDIR /var/www/ct
-RUN bower update
-RUN composer update --no-scripts && composer update
-RUN php artisan key:gen
+ENV APP_KEY=0000000000000000
+RUN composer install
 
 USER postgres
 RUN /etc/init.d/postgresql start \
-	&& sleep 5 \
+	&& sleep 7 \
 	&& php artisan migrate --seed \
 	&& php artisan db:seed --class DemoEnvSeeder
 
