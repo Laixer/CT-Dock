@@ -7,7 +7,7 @@ ENV APP_DEBUG=1
 # Install apache, PHP, and supplimentary programs.
 RUN apt-get -y update \
 	&& apt-get -y --no-install-recommends install wget zip unzip xz-utils git cron supervisor \
-	&& apt-get -y --no-install-recommends install apache2 npm redis-server postgresql \
+	&& apt-get -y --no-install-recommends install apache2 npm postgresql \
 	&& apt-get -y --no-install-recommends install php php-mbstring php-dom php-curl php-pgsql php-gd \
 	&& apt-get -y --no-install-recommends install libapache2-mod-php libxrender1 libxext6 \
 	&& apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -41,7 +41,6 @@ ENV APACHE_PID_FILE /var/run/apache2.pid
 # Copy in config files.
 ADD apache2.conf /etc/apache2/apache2.conf
 ADD app.conf /etc/apache2/sites-enabled/
-ADD redis.conf /etc/redis/redis.conf
 ADD php.ini /etc/php/7.0/apache2/php.ini
 
 # Enable apache mods.
@@ -59,6 +58,7 @@ RUN mkdir -p /var/www/ct \
 USER eve
 WORKDIR /var/www/ct
 ADD calctool-v2/composer.json /var/www/ct
+ADD encryptor /var/www/encryptor
 RUN composer install --no-scripts --no-autoloader
 ADD calctool-v2/bower.json /var/www/ct
 RUN bower update
@@ -67,7 +67,8 @@ RUN bower update
 USER root
 RUN apt-get -y --auto-remove purge wget npm \
 	&& apt-get -y autoremove \
-	&& rm /usr/bin/node
+	&& rm /usr/bin/node \
+	&& rm -rf /var/www/encryptor
 
 # Setup the codebase.
 ADD calctool-v2 /var/www/ct

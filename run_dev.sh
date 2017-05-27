@@ -11,8 +11,9 @@ docker run --rm --name ctdev -h ctdemo \
 	-e APP_LOG_LEVEL=debug \
 	-e EP_HTTPD=1 \
 	-e EP_CRON=1 \
-	-e EP_PGSQL=1 \
 	-e EP_WORKER=1 \
+	-e EP_PGSQL=1 \
+	-v "$PWD/"calctool-v2/bootstrap/constant.php:/var/www/ct/bootstrap/constant.php \
 	-v "$PWD/"calctool-v2/app:/var/www/ct/app \
 	-v "$PWD/"calctool-v2/config:/var/www/ct/config \
 	-v "$PWD/"calctool-v2/database:/var/www/ct/database \
@@ -22,3 +23,9 @@ docker run --rm --name ctdev -h ctdemo \
 	-v "$PWD/"calctool-v2/tests:/var/www/ct/tests \
 	-p 5432:5432 \
 	-d dinux/ctdock:dev
+docker run --rm --name lb1 --link ctdev -h lb1 \
+	-v "$PWD/"nginx_lb/nginx.conf:/etc/nginx/nginx.conf \
+	-v "$PWD/"nginx_lb/dhparam.pem:/etc/nginx/dhparam.pem \
+	-v "$PWD/"nginx_lb/ssl:/etc/nginx/ssl \
+	-v "$PWD/"nginx_lb/conf.d:/etc/nginx/conf.d \
+	-d nginx
