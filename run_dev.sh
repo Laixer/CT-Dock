@@ -1,11 +1,11 @@
 #!/bin/bash
 docker run --rm --name ctdev -h ctdemo \
 	-e SESSION_NAME=ctlocal \
-	-e MOLLIE_API=live_dUapTi8xt2DujzS6WkPyGt8T7UpqY3 \
-	-e POSTCODE_API=rFgaZzNUrB502bjpimpsS3tAzq70dRqJ6QuVXf8F \
-	-e MAILCHIMP_APIKEY=150cc06e3a848bbba776f0d031da6c94-us14 \
-	-e MAILGUN_SECRET=key-939dcd2afaf30eb9dabf874c47c6de50 \
-	-e MAILGUN_PUBLIC=pubkey-5ad82f40a86568d0b05fbd5e1cd21b70 \
+	-e MOLLIE_API= \
+	-e POSTCODE_API= \
+	-e MAILCHIMP_APIKEY= \
+	-e MAILGUN_SECRET= \
+	-e MAILGUN_PUBLIC= \
 	-e APP_ENV=demo \
 	-e APP_DEBUG=true \
 	-e APP_LOG_LEVEL=debug \
